@@ -39,6 +39,27 @@ No target-driven post-hoc pruning. Domain-disjoint (eTLD+1) Gram splits preserve
 Exact + canonical overlap controls preserved. Structural path missingness stays semantically repaired.
 Every number comes from an executed computation; negative results are reported as findings.
 
+## Executed outcome (deterministic REDUCED scale: 50,000 rows/dataset, seed 42)
+
+The full 184-cell notebook executed end-to-end with **0 errors, 219/219 sanity checks passed, 71 minutes**.
+Every gate below reports its **measured** outcome at this scale (not the plan's full-scale expectations):
+
+| Gate | Result | Measured evidence |
+|---|---|---|
+| 0 Foundation | **PASSED** | dataset sha256 fingerprints byte-identical to Rev 5; 219/219 sanity checks |
+| 1 Representation (F68-R) | **NOT fully passed — improved** | max final Wasserstein **0.222** (Rev 5: 0.334); 3 binarised, 2 swapped to `D68_*_bin` copies, 2 unrepairable binaries removed; F68-R final = 67 columns |
+| 2 Zero-shot ceiling | **FAILED (reported)** | best `M0r6 F68-R +pseudo` AUC **0.7585** (< 0.80) vs Rev-5 baseline 0.734/0.745; prune policy v2 **did** prune `R_is_https` on the Gram branch (prevalence shift 0.415) |
+| 3 Multi-source 95% | **NOT MET (reported)** | `M2r6-hybrid` external accuracy **0.9365** (Gram→Phresh) / **0.9082** (Phresh→Gram) vs 0.95 target; AUC 0.982 / 0.969 |
+| 4 Robustness | **NOT PASSED** | augmented P3 flips 0.59/0.26 (unaugmented 0.62); stress flips improved sharply (P5: 0.437 → 0.111) |
+| 5 Cross-family ERS target | **PASSED (3/4 core runs)** | cross-family rho(E0, y_rel6): 0.377 / 0.388 / 0.366 / **-0.011** (phresh\|F60R fails honestly) |
+| 6 DTS external AURC | **NOT PASSED (negative)** | best `DTS_prior_corrected` dAURC **+0.0021**, 95% CI [-0.0060, +0.0094] crosses 0 |
+| 7 Reversal | **GENUINE NEGATIVE reported** | the external high-ERS-more-errors pattern **persists within true class** on 5/6 runs |
+| 8 Shift strata | **REPORTED** | **10/18** run-stratum LRTs Holm-significant; ERS adds beyond confidence exactly on **protocol-shift + path-structure-shift** strata — the shift-conditioned claim the plan predicted |
+
+**Blocker status:** B1 RESOLVED · B2 OPEN (rigorous negative) · B3 REFRAMED (shift-conditioned) · B4 GENUINE NEGATIVE reported · B5 PARTIAL (0.734→0.7585) · B7 PARTIAL.
+
+The headline finding that survives — and is now *stronger* than Rev 5's version: **explanation reliability is not a universal correctness signal, but it carries decision-relevant information precisely on the shift-stressed strata** (protocol/path-structure), while the decision layer (DTS) cannot monetise it even with stratum routing and EM prior correction. This is the honest mixed-result contribution the master plan anticipated.
+
 ## Execution note (scale caveat)
 
 Revision 6 was executed in the notebook's built-in deterministic **reduced** mode
@@ -61,7 +82,7 @@ plan section. The Rev 5 cells and their executed outputs are preserved.
 ```bash
 pip install numpy pandas scipy scikit-learn xgboost lightgbm shap tldextract pyarrow nbformat nbclient joblib matplotlib seaborn statsmodels
 # datasets: grambeddings_dataset_main.rar + phreshphish_url_only_2026.zip in run/input/
-export TRAC_RUN_MODE=reduced          # deterministic reduced scale (see caveat)
+export TRAC_RUN_MODE=reduced TRAC_MAX_ROWS=50000 TRAC_N_JOBS=1  # the executed configuration
 export TRAC_INPUT_ROOT=$PWD/run/input
 export TRAC_WORK_ROOT=$PWD/run/work
 jupyter nbconvert --to notebook --execute notebooks/trac-phish-revision6.ipynb \

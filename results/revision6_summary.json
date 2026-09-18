@@ -1,0 +1,41 @@
+{
+  "notebook_revision": 6,
+  "run_mode": "reduced",
+  "max_rows_per_dataset": 50000,
+  "rows_used": {
+    "gram": 49997,
+    "phresh": 50000
+  },
+  "revision6_feature_set": "F68R",
+  "n_features_f68r": 67,
+  "phase_gates": {
+    "0 Foundation": "PASSED",
+    "1 Representation": "NOT FULLY PASSED",
+    "2 Zero-shot": "FAILED",
+    "3 Multi-source 95%": "NOT MET",
+    "4 Robustness": "NOT PASSED",
+    "5 ERS target": "PASSED",
+    "6 Decision layer": "NOT PASSED (negative reported)",
+    "7 Reversal": "genuine_negative_reported",
+    "8 Shift strata": "REPORTED"
+  },
+  "blocker_status": {
+    "B1 ERS target circularity": "RESOLVED",
+    "B2 DTS collapses to confidence": "OPEN (negative result rigorously established)",
+    "B3 Test B not universal": "REFRAMED (shift-conditioned test executed)",
+    "B4 reversed high-C/low-ERS signal": "REPORTED AS GENUINE NEGATIVE",
+    "B5 weak zero-shot transfer": "PARTIALLY RESOLVED",
+    "B7 domain-invariance gate incomplete (Master V2 numbering)": "PARTIALLY RESOLVED"
+  },
+  "negative_findings": [
+    "Phase 1: the strict 0.15-Wasserstein target was not met by every new feature even after the prescribed remedies (D_has_query_binary (W=0.323), D_query_present (W=0.323) removed from F68-R).",
+    "Phase 2: no source-only F68-R variant reached the 0.80 strict-external AUC gate; the representation remains the zero-shot bottleneck.",
+    "Phase 3: the 0.95 multi-source external accuracy gate was not met on both directions at this execution scale; the shortfall is reported, not forced.",
+    "Phase 4: augmented-model flip rates still exceed the 0.15 gate for at least one family; residual prediction fragility is documented.",
+    "Phase 6: no DTS variant beats confidence-only on external AURC \u2014 a negative result on the decision-relevance of ERS for this dataset pair.",
+    "Phase 7: high-ERS predictions carry higher external error WITHIN class \u2014 explanation stability does not imply decision reliability here.",
+    "Phase 9: the plan's 'Gates 1-8 healthy' precondition was not fully met; the F68-R XAI/ERS/DTS results are labelled exploratory.",
+    "Execution scale: this revision ran in the notebook's deterministic REDUCED mode (TRAC_MAX_ROWS=50,000/dataset) because the execution environment provides a fraction of the memory/compute of the revision-5 full run; every number is a real measurement on the stated reduced corpus and no gate was relaxed because of the scale."
+  ],
+  "runtime_minutes": 71.1
+}

@@ -1,0 +1,103 @@
+{
+  "gate_type": "reporting gate (Master V2 Gate 8): report where ERS adds; no universal claim",
+  "n_run_stratum_tests": 18,
+  "n_significant_holm": 10,
+  "significant_cells": [
+    {
+      "run": "gram|F48",
+      "stratum": "protocol_shift",
+      "n": 126,
+      "error_rate": 0.42857142857142855,
+      "lr_stat": 13.123093536962529,
+      "p_holm": 0.00029167801446676407,
+      "coef_ERS": 1.5182370995578343
+    },
+    {
+      "run": "gram|F48",
+      "stratum": "path_structure_shift",
+      "n": 422,
+      "error_rate": 0.4834123222748815,
+      "lr_stat": 26.834822944493,
+      "p_holm": 4.4321576913357733e-07,
+      "coef_ERS": 1.145938429546104
+    },
+    {
+      "run": "gram|F60R",
+      "stratum": "protocol_shift",
+      "n": 126,
+      "error_rate": 0.42063492063492064,
+      "lr_stat": 23.348537776793222,
+      "p_holm": 1.3514620728967573e-06,
+      "coef_ERS": 2.037024520131242
+    },
+    {
+      "run": "gram|F60R",
+      "stratum": "path_structure_shift",
+      "n": 422,
+      "error_rate": 0.4834123222748815,
+      "lr_stat": 51.669291465459764,
+      "p_holm": 1.3136415809262623e-12,
+      "coef_ERS": 1.7640113696330453
+    },
+    {
+      "run": "gram|F68R",
+      "stratum": "protocol_shift",
+      "n": 126,
+      "error_rate": 0.4126984126984127,
+      "lr_stat": 12.943586429804924,
+      "p_holm": 0.0003866165852292252,
+      "coef_ERS": 1.3990770309607161
+    },
+    {
+      "run": "gram|F68R",
+      "stratum": "path_structure_shift",
+      "n": 422,
+      "error_rate": 0.476303317535545,
+      "lr_stat": 13.895036514660774,
+      "p_holm": 0.0003866165852292252,
+      "coef_ERS": 0.7265904129703329
+    },
+    {
+      "run": "phresh|F48",
+      "stratum": "path_structure_shift",
+      "n": 153,
+      "error_rate": 0.5620915032679739,
+      "lr_stat": 13.135938081579752,
+      "p_holm": 0.0008690555959391048,
+      "coef_ERS": -1.265422446960532
+    },
+    {
+      "run": "phresh|F60R",
+      "stratum": "path_structure_shift",
+      "n": 153,
+      "error_rate": 0.5686274509803921,
+      "lr_stat": 8.481596540414728,
+      "p_holm": 0.010762713529865423,
+      "coef_ERS": 1.629102758938636
+    },
+    {
+      "run": "phresh|F60R",
+      "stratum": "lexicon_shift",
+      "n": 274,
+      "error_rate": 0.2116788321167883,
+      "lr_stat": 5.674622410004247,
+      "p_holm": 0.03442408789690151,
+      "coef_ERS": -1.2783661144574048
+    },
+    {
+      "run": "phresh|F68R",
+      "stratum": "lexicon_shift",
+      "n": 274,
+      "error_rate": 0.15328467153284672,
+      "lr_stat": 14.11293365853686,
+      "p_holm": 0.0005164679503183677,
+      "coef_ERS": -2.30705297620544
+    }
+  ],
+  "where_ers_adds": [
+    "lexicon_shift",
+    "path_structure_shift",
+    "protocol_shift"
+  ],
+  "where_ers_does_not_add": []
+}

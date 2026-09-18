@@ -1,0 +1,9 @@
+negative_or_mixed_finding
+"Phase 1: the strict 0.15-Wasserstein target was not met by every new feature even after the prescribed remedies (D_has_query_binary (W=0.323), D_query_present (W=0.323) removed from F68-R)."
+Phase 2: no source-only F68-R variant reached the 0.80 strict-external AUC gate; the representation remains the zero-shot bottleneck.
+"Phase 3: the 0.95 multi-source external accuracy gate was not met on both directions at this execution scale; the shortfall is reported, not forced."
+Phase 4: augmented-model flip rates still exceed the 0.15 gate for at least one family; residual prediction fragility is documented.
+Phase 6: no DTS variant beats confidence-only on external AURC — a negative result on the decision-relevance of ERS for this dataset pair.
+Phase 7: high-ERS predictions carry higher external error WITHIN class — explanation stability does not imply decision reliability here.
+Phase 9: the plan's 'Gates 1-8 healthy' precondition was not fully met; the F68-R XAI/ERS/DTS results are labelled exploratory.
+"Execution scale: this revision ran in the notebook's deterministic REDUCED mode (TRAC_MAX_ROWS=50,000/dataset) because the execution environment provides a fraction of the memory/compute of the revision-5 full run; every number is a real measurement on the stated reduced corpus and no gate was relaxed because of the scale."

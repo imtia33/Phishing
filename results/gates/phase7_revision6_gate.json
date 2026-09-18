@@ -1,0 +1,82 @@
+{
+  "status": "genuine_negative_reported",
+  "runs_persisting_within_class": [
+    {
+      "run": "gram|F48",
+      "median_delta": 0.09515062124174278
+    },
+    {
+      "run": "gram|F60R",
+      "median_delta": 0.08190671981646383
+    },
+    {
+      "run": "gram|F68R",
+      "median_delta": 0.0870152371726532
+    },
+    {
+      "run": "phresh|F60R",
+      "median_delta": 0.026418080091986984
+    },
+    {
+      "run": "phresh|F68R",
+      "median_delta": 0.07229238954429792
+    }
+  ],
+  "runs_explained_within_class": [
+    {
+      "run": "phresh|F48",
+      "median_delta": -0.024385423719973653
+    }
+  ],
+  "class_confounding_candidates": {
+    "gram|F48": {
+      "delta_ERS_by_true_class": 0.030441423137682833,
+      "delta_ERS_by_pred_class": 0.009119553962101401,
+      "delta_F_by_class": -0.0036514893665116066,
+      "delta_M_by_class": 0.008914297771523305,
+      "FNR": 0.5210237659963437,
+      "FPR": 0.16232771822358347
+    },
+    "gram|F60R": {
+      "delta_ERS_by_true_class": 0.033559170075640576,
+      "delta_ERS_by_pred_class": 0.003955652074416394,
+      "delta_F_by_class": -0.0032265074649838743,
+      "delta_M_by_class": -0.000608290032188985,
+      "FNR": 0.5100548446069469,
+      "FPR": 0.15773353751914243
+    },
+    "gram|F68R": {
+      "delta_ERS_by_true_class": 0.03674067016606586,
+      "delta_ERS_by_pred_class": 0.00900885996777967,
+      "delta_F_by_class": 0.001124836031352383,
+      "delta_M_by_class": -0.0007800538760327491,
+      "FNR": 0.47714808043875684,
+      "FPR": 0.17457886676875958
+    },
+    "phresh|F48": {
+      "delta_ERS_by_true_class": 0.011440563270327053,
+      "delta_ERS_by_pred_class": 0.026988168833205983,
+      "delta_F_by_class": 0.008823899733476748,
+      "delta_M_by_class": -0.007337149856222691,
+      "FNR": 0.28618968386023297,
+      "FPR": 0.39232053422370616
+    },
+    "phresh|F60R": {
+      "delta_ERS_by_true_class": 0.01472082057367119,
+      "delta_ERS_by_pred_class": 0.02833062948129783,
+      "delta_F_by_class": 0.008412828600293354,
+      "delta_M_by_class": -0.007415907061172344,
+      "FNR": 0.2895174708818636,
+      "FPR": 0.39565943238731216
+    },
+    "phresh|F68R": {
+      "delta_ERS_by_true_class": 0.011375990406348069,
+      "delta_ERS_by_pred_class": 0.028344910636179832,
+      "delta_F_by_class": 0.006812568746423664,
+      "delta_M_by_class": -0.012623264869016326,
+      "FNR": 0.2113144758735441,
+      "FPR": 0.4040066777963272
+    }
+  },
+  "verdict_text": "The external reversal PERSISTS within true class: high-ERS predictions carry higher error than low-ERS predictions even after conditioning on class. Per the plan this is reported as a genuine negative: explanation stability does not imply decision reliability on external data, and high-C/low-ERS is NOT presented as a risk signal on external populations."
+}

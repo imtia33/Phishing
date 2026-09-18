@@ -1,0 +1,32 @@
+{
+  "threshold": 0.15,
+  "flip_rates_augmented_external": {
+    "GramBeddings -> PhreshPhish": {
+      "P3_dot_segment": 0.5933333333333334,
+      "P5_subdomain_insertion": 0.11148365465213747,
+      "P6_path_padding": 0.11916666666666667,
+      "P7_query_padding": 0.06416666666666666
+    },
+    "PhreshPhish -> GramBeddings": {
+      "P3_dot_segment": 0.25916666666666666,
+      "P5_subdomain_insertion": 0.1785109983079526,
+      "P6_path_padding": 0.13083333333333333,
+      "P7_query_padding": 0.095
+    }
+  },
+  "flip_rates_unaugmented_external": {
+    "GramBeddings -> PhreshPhish": {
+      "P3_dot_segment": 0.62,
+      "P5_subdomain_insertion": 0.43671416596814755,
+      "P6_path_padding": 0.18833333333333332,
+      "P7_query_padding": 0.11166666666666666
+    },
+    "PhreshPhish -> GramBeddings": {
+      "P3_dot_segment": 0.285,
+      "P5_subdomain_insertion": 0.23011844331641285,
+      "P6_path_padding": 0.17833333333333334,
+      "P7_query_padding": 0.5466666666666666
+    }
+  },
+  "passed": false
+}

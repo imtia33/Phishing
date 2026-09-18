@@ -1,0 +1,11 @@
+{
+  "criterion": "at least one DTS variant achieves lower EXTERNAL AURC than confidence-only (Master V2 Gate 6)",
+  "best_variant": "DTS_prior_corrected (revision-6)",
+  "best_run": "phresh|F60R",
+  "best_dAURC": 0.0020528875737933494,
+  "best_ci": [
+    -0.0059536659730829895,
+    0.00936956170948097
+  ],
+  "passed": false
+}

@@ -1,0 +1,52 @@
+{
+  "n_new_features_measured": 15,
+  "n_features_final_f68r": 67,
+  "max_wasserstein_final": 0.22183610490218755,
+  "n_pass_le_0.15_initial": 9,
+  "n_binarised": 3,
+  "binarised": [
+    "D_brand_tld_match",
+    "D_digit_run_max",
+    "D_path_token_density"
+  ],
+  "n_swapped_to_f68_copy": 2,
+  "swapped": [
+    "D_host_entropy_ratio -> D68_host_entropy_ratio_bin",
+    "D_query_present -> D68_query_present_bin"
+  ],
+  "n_removed_unrepairable": 2,
+  "removed": [
+    "D_has_query_binary (W=0.323)",
+    "D_query_present (W=0.323)"
+  ],
+  "replacements": {
+    "D_brand_tld_match": {
+      "rule": "binarised at the source-TRAIN median (revision-6 gate)",
+      "threshold": 0.0
+    },
+    "D_digit_run_max": {
+      "rule": "binarised at the source-TRAIN median (revision-6 gate)",
+      "threshold": 1.0
+    },
+    "D68_host_entropy_ratio_bin": {
+      "rule": "binarised COPY of D_host_entropy_ratio at the source-TRAIN median (revision-6 gate; F60-R untouched)",
+      "threshold": 0.8182464241981506
+    },
+    "D_path_token_density": {
+      "rule": "binarised at the source-TRAIN median (revision-6 gate)",
+      "threshold": 0.34210526943206787
+    },
+    "D68_query_present_bin": {
+      "rule": "binarised COPY of D_query_present (revision-6 gate, W > 0.25)",
+      "threshold": 0.0
+    }
+  },
+  "standardization": {
+    "host_entropy_norm_z": {
+      "mean": 3.5115338737191157,
+      "std": 0.40083298259687244
+    }
+  },
+  "gate_passed": false,
+  "decision_signal": "source/target TRAIN feature distributions only; no labels, no test partition, no target metric"
+}

@@ -1,0 +1,21 @@
+{
+  "n_new_features": 7,
+  "max_wasserstein": 0.32300000317402555,
+  "n_pass_le_0.15": 5,
+  "n_replaced": 2,
+  "replacements": {
+    "D_subdomain_binary": {
+      "rule": "binarised at the source-TRAIN median",
+      "threshold": 1.0
+    },
+    "D_query_present": {
+      "rule": "binarised at the source-TRAIN median",
+      "threshold": 0.0
+    }
+  },
+  "exact_duplicates": [
+    "D_has_port_binary"
+  ],
+  "gate_passed": false,
+  "decision_signal": "source/target TRAIN feature distributions only; no labels, no test partition, no target metric"
+}

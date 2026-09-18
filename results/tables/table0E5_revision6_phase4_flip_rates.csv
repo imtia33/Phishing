@@ -1,0 +1,17 @@
+direction,family,model,n_parents_with_valid,flip_rate
+GramBeddings -> PhreshPhish,P3_dot_segment,augmented,1200,0.5933333333333334
+GramBeddings -> PhreshPhish,P3_dot_segment,unaugmented,1200,0.62
+GramBeddings -> PhreshPhish,P5_subdomain_insertion,augmented,1193,0.11148365465213747
+GramBeddings -> PhreshPhish,P5_subdomain_insertion,unaugmented,1193,0.43671416596814755
+GramBeddings -> PhreshPhish,P6_path_padding,augmented,1200,0.11916666666666667
+GramBeddings -> PhreshPhish,P6_path_padding,unaugmented,1200,0.18833333333333332
+GramBeddings -> PhreshPhish,P7_query_padding,augmented,1200,0.06416666666666666
+GramBeddings -> PhreshPhish,P7_query_padding,unaugmented,1200,0.11166666666666666
+PhreshPhish -> GramBeddings,P3_dot_segment,augmented,1200,0.25916666666666666
+PhreshPhish -> GramBeddings,P3_dot_segment,unaugmented,1200,0.285
+PhreshPhish -> GramBeddings,P5_subdomain_insertion,augmented,1182,0.1785109983079526
+PhreshPhish -> GramBeddings,P5_subdomain_insertion,unaugmented,1182,0.23011844331641285
+PhreshPhish -> GramBeddings,P6_path_padding,augmented,1200,0.13083333333333333
+PhreshPhish -> GramBeddings,P6_path_padding,unaugmented,1200,0.17833333333333334
+PhreshPhish -> GramBeddings,P7_query_padding,augmented,1200,0.095
+PhreshPhish -> GramBeddings,P7_query_padding,unaugmented,1200,0.5466666666666666

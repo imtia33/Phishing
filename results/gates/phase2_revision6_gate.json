@@ -1,0 +1,19 @@
+{
+  "threshold": 0.8,
+  "best_model_gram_to_phresh": "M0r6 F68-R +pseudo",
+  "best_external_roc_auc_gram_to_phresh": 0.7584912535319378,
+  "all_models_gram_to_phresh": {
+    "M0r6 F68-R": 0.7488,
+    "M0r6 F68-R prune-v2": 0.7276,
+    "M0r6 F68-R +rank": 0.7304,
+    "M0r6 F68-R +pseudo": 0.7585
+  },
+  "all_models_phresh_to_gram": {
+    "M0r6 F68-R": 0.7465,
+    "M0r6 F68-R prune-v2": 0.7577,
+    "M0r6 F68-R +rank": 0.7577,
+    "M0r6 F68-R +pseudo": 0.7617
+  },
+  "r_is_https_pruned_on_gram_branch": true,
+  "passed": false
+}

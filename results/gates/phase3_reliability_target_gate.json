@@ -1,0 +1,31 @@
+{
+  "threshold": 0.1,
+  "rho_E0_y_rel_by_run": {
+    "gram|F48": 0.7463,
+    "gram|F60R": 0.735,
+    "gram|F68R": 0.7384,
+    "phresh|F48": 0.7336,
+    "phresh|F60R": 0.6128,
+    "phresh|F68R": 0.6256
+  },
+  "rho_E0_S_challenge_by_run": {
+    "gram|F48": 0.4575,
+    "gram|F60R": 0.4254,
+    "gram|F68R": 0.4563,
+    "phresh|F48": 0.4956,
+    "phresh|F60R": 0.2977,
+    "phresh|F68R": 0.3106
+  },
+  "rho_E0_S_P3_rev4_target_by_run": {
+    "gram|F48": 0.2843,
+    "gram|F60R": 0.3315,
+    "gram|F68R": 0.3162,
+    "phresh|F48": 0.1036,
+    "phresh|F60R": -0.2194,
+    "phresh|F68R": -0.1803
+  },
+  "passed_all_runs": true,
+  "passed_any_run": true,
+  "passed_on_disjoint_component_all_runs": true,
+  "circularity_note": "y_rel shares 50% of its weight (S_P1, S_P2) with the S term inside E0; the disjoint row is the non-circular evidence"
+}

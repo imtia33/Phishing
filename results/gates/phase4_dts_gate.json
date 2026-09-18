@@ -1,0 +1,25 @@
+{
+  "criterion": "DTS validation OOF Brier < confidence-only OOF Brier",
+  "by_run_and_mode": {
+    "gram|F48 | logistic_2f": false,
+    "gram|F48 | logistic_3f_legacy": false,
+    "gram|F48 | rule": false,
+    "gram|F60R | logistic_2f": true,
+    "gram|F60R | logistic_3f_legacy": false,
+    "gram|F60R | rule": false,
+    "gram|F68R | logistic_2f": true,
+    "gram|F68R | logistic_3f_legacy": true,
+    "gram|F68R | rule": false,
+    "phresh|F48 | logistic_2f": true,
+    "phresh|F48 | logistic_3f_legacy": true,
+    "phresh|F48 | rule": false,
+    "phresh|F60R | logistic_2f": false,
+    "phresh|F60R | logistic_3f_legacy": false,
+    "phresh|F60R | rule": false,
+    "phresh|F68R | logistic_2f": true,
+    "phresh|F68R | logistic_3f_legacy": false,
+    "phresh|F68R | rule": false
+  },
+  "any_mode_beats_C_on_all_runs": false,
+  "collapse_to_confidence_cases": []
+}

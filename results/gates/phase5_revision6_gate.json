@@ -1,0 +1,40 @@
+{
+  "threshold": 0.1,
+  "rho_cross_family_by_run": {
+    "gram|F48": 0.3772,
+    "gram|F60R": 0.388,
+    "gram|F68R": 0.4,
+    "phresh|F48": 0.3661,
+    "phresh|F60R": -0.0112,
+    "phresh|F68R": 0.0693
+  },
+  "rho_legacy_S_challenge_by_run": {
+    "gram|F48": 0.4575,
+    "gram|F60R": 0.4254,
+    "gram|F68R": 0.4563,
+    "phresh|F48": 0.4956,
+    "phresh|F60R": 0.2977,
+    "phresh|F68R": 0.3106
+  },
+  "rho_legacy_S_P3_by_run": {
+    "gram|F48": 0.2843,
+    "gram|F60R": 0.3315,
+    "gram|F68R": 0.3162,
+    "phresh|F48": 0.1036,
+    "phresh|F60R": -0.2194,
+    "phresh|F68R": -0.1803
+  },
+  "core4_runs": [
+    "gram|F48",
+    "gram|F60R",
+    "phresh|F48",
+    "phresh|F60R"
+  ],
+  "core4_n_pass": 3,
+  "runs_failing": [
+    "phresh|F60R",
+    "phresh|F68R"
+  ],
+  "circularity_note": "the revision-6 target shares NO component with E0's S term (P1/P2 excluded); S_challenge is held-out by construction, S_calib_P3 is the calibration family",
+  "passed": true
+}

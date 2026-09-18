@@ -1,0 +1,10 @@
+phase,gate,result,evidence
+0 Foundation,dataset fingerprints + compatibility gate unchanged from revision 5,PASSED,integrity/compatibility gate 15/15 checks passed
+1 Representation,"all 15 new features <= 0.15 Wasserstein in the final F68-R composition (binarise 0.15-0.25, replace/remove > 0.25)",NOT FULLY PASSED,"max final W = 0.2218; binarised 3, swapped 2, removed 2"
+2 Zero-shot,best source-only strict-external AUC >= 0.8,FAILED,best = M0r6 F68-R +pseudo at 0.7585 (Gram->Phresh); R_is_https pruned by policy v2: True
+3 Multi-source 95%,best multi-source external accuracy >= 0.95 on BOTH directions,NOT MET,GramBeddings -> PhreshPhish: 0.9365 (M2r6-hybrid F68-R+ds); PhreshPhish -> GramBeddings: 0.9082 (M2r6-hybrid F68-R+ds)
+4 Robustness,P3 and P5/P6/P7 external flip rates <= 0.15 (augmented),NOT PASSED,"{""GramBeddings -> PhreshPhish"": {""P3_dot_segment"": 0.5933333333333334, ""P5_subdomain_insertion"": 0.11148365465213747, ""P6_path_padding"": 0.11916666666666667, ""P7_query_padding"": 0.06416666666666666}, ""PhreshPhish -> GramBeddings"": {""P3_dot_segment"": 0.25916666666666666, ""P5_subdomain_insertion"": 0.1785109983079526, ""P6_path_padding"": 0.13083333333333333, ""P7_query_padding"": 0.095}}"
+5 ERS target,"cross-family rho(E0, y_rel_6) > 0.1 on >= 3/4 core runs",PASSED,"3/4 core runs; failing: ['phresh|F60R', 'phresh|F68R']"
+6 Decision layer,>= 1 DTS variant with lower external AURC than confidence-only,NOT PASSED (negative reported),"best dAURC = 0.0021 (DTS_prior_corrected (revision-6) on phresh|F60R), CI [-0.0060, 0.0094]"
+7 Reversal,external high-C/low-ERS reversal explained or reported as genuine negative,genuine_negative_reported,The external reversal PERSISTS within true class: high-ERS predictions carry higher error than low-ERS predictions even after conditioning on class. Per the plan this is reported as a genuine negative: explanation stabil
+8 Shift strata,"LRT per stratum, Holm within family; report where ERS adds",REPORTED,"10/18 run-stratum tests significant; ERS adds in: ['lexicon_shift', 'path_structure_shift', 'protocol_shift']"

@@ -1,0 +1,19 @@
+{
+  "threshold": 0.95,
+  "per_direction": {
+    "GramBeddings -> PhreshPhish": {
+      "best_model": "M2r6-hybrid F68-R+ds",
+      "best_external_accuracy": 0.9365297195299769,
+      "roc_auc": 0.9820846367583405,
+      "tau_target_val_mcc": 0.39712516054814995
+    },
+    "PhreshPhish -> GramBeddings": {
+      "best_model": "M2r6-hybrid F68-R+ds",
+      "best_external_accuracy": 0.9082371880869332,
+      "roc_auc": 0.9685925180411332,
+      "tau_target_val_mcc": 0.34928151667118074
+    }
+  },
+  "passed_both_directions": false,
+  "claim_framing": "semi-supervised multi-source (target TRAIN labels + target-VAL tuning); NOT zero-shot"
+}

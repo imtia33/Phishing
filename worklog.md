@@ -36,3 +36,26 @@ Work Log:
 Stage Summary:
 - trac-phish-revision6.ipynb: 184 cells, all compile, nbformat valid.
 - Smoke-mode validation loop catching integration bugs cheaply before the reduced-scale run.
+
+---
+Task ID: 3
+Agent: main orchestrator (Z.ai Code)
+Task: Execute trac-phish-revision6.ipynb end-to-end (deterministic reduced scale) and produce the final executed notebook.
+
+Work Log:
+- Smoke run (TRAC_MAX_ROWS=20,000): completed with 0 errors after 6 build iterations that fixed: pyarrow missing; 4 wrong hand-computed F68-R unit-test expectations; FEATURES_68R defined before FEATURES_60R; FEATURES_60R referenced in Phase-1a print; fresh extractions lacking D68_*_bin swapped copies; Phase-2 raw_matrix missing fset arg; model_proba vs raw predict_proba (n,2) in Phase 4; P["uids"] are string record-ids (used P["rows"]/pos.loc conventions); Phase 7/8 moved after RUNS[rk]["ers_thresholds"] exists; ALL_FEATURE_COLUMNS extended with D68_ copies; fresh-extraction sanity audit scoped to the original 7 D_ columns.
+- Reduced attempts 1-5 (120K/80K rows, 2 jobs): kernel OOM-killed. Root cause discovered by comparing preserved Rev-5 outputs vs fresh ones: nbclient does NOT clear old outputs, so "last executed cell" was fake — the kernel actually died at the XAI/SHAP stage; killer = fork-based parallel RF SHAP (fork COW refcount page duplication) + cumulative caches (_FEAT_NP ~0.5GB, models, char bundles, PERT_CACHE).
+- Fixes applied: memory-release checkpoint appended inside the sanity-audit cell (PERT_CACHE/STRESS/CHAR_*/_FEAT_NP/models + gc + glibc malloc_trim); final run at TRAC_MAX_ROWS=50,000, TRAC_N_JOBS=1 (no fork pools).
+- FINAL RUN: status completed, 0 error cells, 71.2 min, all 184 cells executed (Rev 5 verbatim + Rev 6 phases 0-10), 219/219 sanity checks passed, 76 result tables written.
+
+Stage Summary (executed gate outcomes, reduced scale 50K rows/dataset):
+- Gate 0 PASSED (fingerprints byte-identical to Rev 5; 219/219 sanity).
+- Gate 1 NOT fully passed but improved: max final W 0.222 (Rev 5: 0.334); F68-R final = 67 cols; 2 unrepairable binaries removed (D_has_query_binary, D_query_present); policy documented.
+- Gate 2 FAILED: best M0r6 +pseudo AUC 0.7585 (< 0.80) vs Rev-5 baseline 0.734/0.745; policy v2 DID prune R_is_https on the Gram branch (prune-v2 alone hurt at this scale: 0.7276).
+- Gate 3 NOT MET: M2r6-hybrid external accuracy 0.9365 (Gram->Phresh) / 0.9082 (Phresh->Gram) vs 0.95 target; AUC 0.982/0.969.
+- Gate 4 NOT PASSED: P3 flips 0.59/0.26 (augmentation marginal: unaugmented 0.62); stress flips improved sharply (P5 0.437 -> 0.111 gram->phresh).
+- Gate 5 PASSED (3/4 core runs; cross-family rho 0.377/0.388/0.366; phresh|F60R -0.011 fails honestly).
+- Gate 6 NOT PASSED (negative reported): best DTS_prior_corrected dAURC +0.0021, CI [-0.0060, +0.0094] crosses 0.
+- Gate 7 genuine_negative_reported: reversal persists within true class on 5/6 runs (median delta +0.026..+0.095).
+- Gate 8 REPORTED: 10/18 run-stratum LRTs Holm-significant; ERS adds beyond confidence precisely on protocol_shift + path_structure_shift (+ lexicon) strata — the shift-conditioned claim the plan predicted.
+- Blockers: B1 RESOLVED; B2 OPEN (rigorous negative); B3 REFRAMED; B4 GENUINE NEGATIVE reported; B5 PARTIAL (0.734->0.7585); B7 PARTIAL.

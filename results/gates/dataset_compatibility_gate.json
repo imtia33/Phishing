@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "origin_auc": 0.9101358028252267,
+  "origin_tier": "high",
+  "best_gram_to_phresh_benchmark_roc_auc": 0.7586801849274257,
+  "external_error_rate": 0.3357063212968522,
+  "strict_external_sizes": {
+    "GramBeddings -> PhreshPhish": 11659,
+    "PhreshPhish -> GramBeddings": 7454
+  },
+  "failed": [],
+  "timestamp_utc": "2026-09-18T10:27:15.325478+00:00"
+}

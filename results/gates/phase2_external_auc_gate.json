@@ -1,0 +1,14 @@
+{
+  "threshold": 0.8,
+  "best_model": "M4 multi-source hybrid",
+  "best_external_roc_auc": 0.981732836537458,
+  "source_only_F60R_external_roc_auc": 0.7123085720534292,
+  "passed": true,
+  "all_models": {
+    "M0 source-only F60-R": 0.7123,
+    "M1 domain-pruned F60-R": 0.7172,
+    "M2 multi-source F60-R+ds": 0.9718,
+    "M3 hybrid F60-R+CharSVD-64": 0.7303,
+    "M4 multi-source hybrid": 0.9817
+  }
+}

@@ -1,0 +1,577 @@
+# MASTER IMPLEMENTATION PLAN V2 — TRAC-Phish Revision 6
+
+**Status of this document.** This is the complete implementation plan to move from `trac-phish-revision5_runned.ipynb` (dataset layer fixed, core novelty unresolved) to a Revision 6 that either (a) genuinely wins the ERS-beyond-confidence claim under shift, or (b) rigorously reframes it as a mixed/negative-result contribution. It supersedes `Master_implementation.txt`. It preserves every non-negotiable rule from the original handoff.
+
+---
+
+## PART 0 — EXECUTIVE SUMMARY
+
+Revision 5 proved the pipeline runs on Gram + Phresh, that faithfulness and consensus are strong, and that ERS predicts held-out explanation stability. Rev 5 did **not** prove that ERS adds decision-relevant information beyond confidence, and it revealed a **sign-reversed** high-C/low-ERS pattern on external data that, taken at face value, contradicts the intended narrative.
+
+The plan below:
+
+1. **Explains every remaining failure with a concrete mechanism** (not "tune more").
+2. **Separates three different claims** you have been conflating — zero-shot, unsupervised adaptation, semi-supervised multi-source — and gives each a realistic accuracy ceiling.
+3. **Gives a concrete path to 95% overall accuracy**, but only under the claim where 95% is honest.
+4. **Fixes the reversed high-C/low-ERS signal**, which is the single most dangerous finding because it can invalidate the paper if left unexplained.
+5. **Preserves all non-negotiables**: no PhishTank, no LegitPhish in primary, no HTML, no Phresh test labels for tuning, domain-disjoint splits, exact+canonical overlap control, F54-R/F60-R naming, structural-missingness repair, no target-driven feature pruning, no forced accuracy.
+6. **Runs in phases with hard gates**, so you never spend 4 hours of XAI compute on a broken decision layer.
+
+**Recommended paper framing if the honest results land where I expect them:** *"Explanation reliability is a distinct signal from prediction confidence, but its decision-relevance is conditional on distribution shift, source-target asymmetry, and the specific reliability target chosen."* This is a legitimate mixed-result contribution. It is not the "ERS beats confidence" headline you originally wanted, but it is publishable.
+
+---
+
+## PART 1 — DIAGNOSTIC FOUNDATION
+
+### 1.1 What Rev 5 actually proved
+
+| Claim | Evidence | Verdict |
+|---|---|---|
+| Gram + Phresh is a usable pair | Origin ROC-AUC 0.924, external error rate 0.315, strict populations ≥118K | **PASS** |
+| Structural missingness fixed | `mean_path_segment_length` NaN-free in pathless URLs | **PASS** |
+| Representation is versioned | F48=48, F54-R=54, F60-R=61, asserted | **PASS** |
+| Faithfulness is real | F_mean 0.878–0.906, random control 0.50, Wilcoxon p≈0 | **PASS** |
+| Consensus is real | M_mean 0.848–0.892 across tree models | **PASS** |
+| ERS predicts held-out stability | Spearman(ERS, S_challenge) 0.23–0.51, p≈0 | **PARTIAL PASS** |
+| ERS adds beyond confidence for correctness | LRT p<α only on Gram→Phresh external | **MIXED** |
+| DTS improves selective risk | Validation gate failed; no mode beats confidence OOF Brier | **FAIL** |
+| Zero-shot transfer is meaningful | Source-only AUC 0.734 / 0.745 | **WEAK** |
+| Robustness under perturbation | Flip rates 8–57% on identity-preserving families | **WEAK** |
+| High-C/low-ERS is a risk signal | Reversed (OR<1) on Gram→Phresh external | **FAIL** |
+
+### 1.2 The five unresolved blockers, precisely stated
+
+**B1. ERS calibration target is partly circular.**
+`E0 = (F · S · M)^(1/3)` with `S = mean over P1, P2`. `y_rel = 0.5·S_challenge + 0.3·S_P2 + 0.2·S_P1`. The 0.5 weight on `S_challenge` is fine, but the 0.5 combined weight on `S_P1` and `S_P2` **shares components with E0**. The honest non-circular correlation `rho(E0, S_challenge)` is 0.21–0.52, which is real but weaker than the headline `rho(E0, y_rel) = 0.54–0.76`.
+
+**B2. DTS collapses to confidence.** Even the L2-regularised 2-feature logistic gives Brier deltas of ±0.0001 vs confidence-only. The rule-based DTS is worse. The reason is structural: on source validation, confidence is already near-sufficient, so `logit_ERS` has no marginal effect to find.
+
+**B3. Test B is not universal.** Gram-sourced models show a positive LRT for ERS beyond C. Phresh-sourced models often do not. This is consistent with ERS being useful specifically when the *source* has low-HTTPS prevalence and the *target* has high-HTTPS prevalence — i.e., when there is a protocol-representation shortcut to detect.
+
+**B4. Reversed high-C/low-ERS vs high-C/high-ERS error ratio.** On Gram→Phresh external, high-ERS predictions have ~5–50× the error rate of low-ERS predictions. On Phresh in-domain F60R, the sign flips. This must be diagnosed, not hidden, or the paper is not honest.
+
+**B5. Zero-shot transfer is weak.** Source-only external AUC ~0.73–0.75. Hybrid gives +0.014–0.019 AUC only. Multi-source hits 0.96–0.98, but only because it uses **target TRAIN labels**.
+
+### 1.3 Root cause: why M0 source-only F60-R is down to 0.73
+
+This is the question the user asked directly, and it deserves a specific mechanical answer, not "distribution shift."
+
+**Mechanism 1 — Feature importance does not overlap.**
+- Gram F60-R top-10 by mean |SHAP|: `R_body_entropy`, `R_brand_token_count`, `R_body_dot_count`, `R_auth_token_count`, `R_mean_path_segment_length`, `R_body_avg_token_length`, `R_subdomain_depth`, `R_suspicious_token_count`, `R_path_depth`, `R_hex_like_ratio`.
+- Phresh F60-R top-10: `R_path_ratio`, `R_repeated_char_run_count`, `R_body_entropy`, `R_host_label_count`, `R_is_https`, `R_path_slash_count`, `R_hostname_length`, `D_query_present`, `R_host_token_length_variance`, `R_body_dot_count`.
+- **Overlap is only 3 features out of 10** (`R_body_entropy`, `R_body_dot_count`, `R_path_slash_count`/`R_path_ratio` loosely). The source model is looking at the wrong features for the target.
+
+**Mechanism 2 — Protocol shortcut inversion.**
+- `R_is_https` prevalence: Gram 0.5276, Phresh 0.9422. Normalised Wasserstein 0.830 (the single largest shift).
+- On Gram, `is_https` is the **single most important origin feature** in the origin classifier (25.3% of importance on F60-R). Gram's phishing URLs disproportionately use HTTP.
+- On Phresh, HTTPS is nearly universal. `is_https` has almost no variance to split on. A model trained on Gram carries a decision boundary keyed to a feature that does not exist on the target.
+- Note this is *not* leakage; it is a legitimate source-domain feature that happens to be a target-domain shortcut. But it degrades transfer.
+
+**Mechanism 3 — Host structure shift.**
+- `R_subdomain_density`: Gram 0.219 → Phresh 0.288, Wasserstein 0.517.
+- `D_subdomain_binary`: Gram 0.596 → Phresh 0.850, Wasserstein 0.516.
+- `R_host_token_length_variance`: 19.30 → 18.18, medians 10.89 → 7.19.
+- The model learned subdomain-depth-based thresholds that are miscalibrated on target.
+
+**Mechanism 4 — Path structure shift.**
+- `R_query_length`: 12.64 → 1.77.
+- `R_query_ratio`: 0.074 → 0.011.
+- `R_body_hyphen_count`: 1.08 → 1.94 (Wasserstein 0.444).
+- Gram's phishing URLs carry much longer query strings; Phresh's do not. So the "query length = phishing" pattern is entirely absent on target.
+
+**Mechanism 5 — Semantic vocabulary shift.**
+- `R_auth_token_count`: 0.204 → 0.071 (Wasserstein 0.228).
+- `R_suspicious_token_count` shifts similarly.
+- The vocabulary (`login`, `secure`, `verify`, etc.) appears far less often in Phresh URLs — either because Phresh phishing uses different lexicon, or because the source and target were collected at different times.
+
+**Mechanism 6 — Class-conditional shift.**
+Two features can have the same marginal distribution across datasets but different class-conditional distributions. `R_path_length` is the canonical case: median 18 in both datasets but the phishing-vs-benign gap differs. The source model's threshold is then wrong on target.
+
+**Mechanism 7 — Combined effect.**
+The Gram model sees HTTPS + long query + specific subdomain depths + a specific lexicon. On Phresh, none of these align. The result is a decision boundary tilted for Gram phishing that assigns ~40% false-positive rate on Phresh benign at any threshold near 0.5. The reported 0.73 AUC reflects "some signal survives" — entropy and dot-count are the only robust carriers.
+
+**Mechanism 8 — The domain-invariance gate did not fully pass.**
+Phase 1 found 2 of 7 new features above the replacement threshold and 2 more above the warn threshold. So the representation was *partially* repaired, not fully. This contributes but does not explain the whole drop.
+
+**Why M2/M4 recover to 0.97.**
+M2/M4 use Phresh TRAIN labels. They see the target's actual class-conditional distributions and re-learn the boundary using `R_is_https` (which alone explains most of the shift) and target-specific feature thresholds. This is legitimate but is **not zero-shot transfer** — it is supervised domain adaptation. The scientific claim must reflect this.
+
+---
+
+## PART 2 — THE 95% QUESTION: WHAT IS ACTUALLY ACHIEVABLE
+
+You asked for ≥95% overall accuracy on Gram→Phresh and Phresh→Gram. This is achievable, but only under specific framings. Here is the honest ceiling analysis:
+
+| Framing | Training data | Source-only external AUC realistic | Source-only external accuracy realistic | Achievable? |
+|---|---|---|---|---|
+| **Zero-shot cross-dataset** | Source only | 0.78–0.84 | 0.72–0.78 | Not 95% |
+| **Zero-shot + strong representation** (char LM, transformer) | Source only | 0.84–0.90 | 0.78–0.84 | Not 95% |
+| **Unsupervised domain adaptation** (no target labels, pseudo-label / TTA / DANN) | Source + unlabelled target train | 0.88–0.93 | 0.82–0.88 | Not 95% |
+| **Semi-supervised multi-source** (M2/M4 style) | Source + labelled target train | 0.96–0.99 | 0.92–0.96 | **Yes with tuning** |
+| **Semi-supervised + strong representation + pseudo-label + ensemble** | Source + labelled + unlabelled target train | 0.98–0.99 | 0.94–0.97 | **Yes** |
+
+**Conclusion.** 95% is a **semi-supervised multi-source** number. It is not a zero-shot number. The paper must declare which claim it makes. My recommendation: **make semi-supervised multi-source the headline claim, and report zero-shot as a lower-bound ablation**. That is scientifically defensible and matches what the pipeline already produces (M2/M4 at 0.97 AUC).
+
+If you insist on 95% **zero-shot**, you need to change representation (pretrained URL encoder or character-level neural model), which is a much larger project.
+
+---
+
+## PART 3 — BLOCKER-BY-BLOCKER SOLUTIONS
+
+### BLOCKER 1 — ERS calibration target circularity
+
+**Problem statement.** `y_rel` reuses P1/P2 stability, which is also inside `E0`. The reported `rho(E0, y_rel) > 0.10` gate is partly self-fulfilling, and `rho(E0, S_challenge) = 0.21–0.52` is the honest number.
+
+**Solution — cross-family reliability target.**
+Define the calibration target using only families that are **not** used by `E0`:
+
+```
+E0 components:   F (faithfulness, no family), S_dev = mean(P1, P2), M (consensus)
+y_rel target:    y_rel = 0.5 * S_challenge + 0.5 * S_calib          # P4+P4B and P3 only
+```
+
+Then `rho(E0, y_rel)` is a genuine cross-family test. Report it alongside the old `y_rel` as a comparison.
+
+**Code change (replaces Section 32D target block):**
+
+```python
+ERS_W = {"S_challenge": 0.5, "S_calib_P3": 0.5}
+FAMILY_OF_COMPONENT = {"S_challenge": None, "S_calib_P3": "P3_dot_segment"}
+
+def build_reliability_target(P, weights=None):
+    weights = weights or ERS_W
+    n = len(P["C"])
+    comps = {"S_challenge": P["S_challenge"],
+             "S_calib_P3": _family_mean(P, "P3_dot_segment")}
+    num, den = np.zeros(n), np.zeros(n)
+    for name, w in weights.items():
+        v = comps[name]; m = np.isfinite(v)
+        num[m] += w * v[m]; den[m] += w
+    return np.where(den > 0, num / np.where(den > 0, den, 1.0), np.nan), comps
+```
+
+**Gate change.** Report three correlations side by side and treat the *cross-family* one as the primary gate:
+
+```
+rho(E0, y_rel)              # headline (now cross-family)
+rho(E0, S_challenge)        # legacy held-out-population
+rho(E0, S_P3)               # legacy revision-4
+```
+
+If cross-family `rho` drops below 0.10 on any run, report that run as "ERS target not identified" and do not claim ERS for it.
+
+**Expected outcome.** `rho(E0, y_rel)` will drop from 0.54–0.76 to roughly 0.30–0.55. That is the honest number.
+
+---
+
+### BLOCKER 2 — DTS collapses to confidence
+
+**Problem statement.** Validation in-domain, confidence is already near-sufficient for correctness. The 3-feature logistic DTS fails because there is no *global* marginal effect of ERS on correctness to find. The rule-based DTS is worse because it is not a fitted model.
+
+**Diagnosis.** Rev 5 DTS OOF Brier deltas vs c_only are ±0.0001. Rule DTS has Brier +0.010–0.015. The problem is not regularisation; it is that **the effect is conditional on the target population**, which the source-validation fit cannot see.
+
+**Solution — three-part DTS strategy.**
+
+**Part 2A. Stratum-conditional DTS via mixture.**
+Fit two separate logistic models on source validation:
+- Model α: `P(correct | C, ERS)` on **high-C** rows only (C ≥ 0.9).
+- Model β: `P(correct | C, ERS)` on **low-C** rows only (C < 0.9).
+
+At inference, route to α or β based on C. This captures the stratum-conditional effect Rev 4 and Rev 5 both hinted at.
+
+```python
+class StratumDTS:
+    """Route by confidence; fit a separate logistic per stratum."""
+    STRATA = [(0.00, 0.90, "low_C"), (0.90, 1.01, "high_C")]
+    def fit(self, C, E, y, groups, key, k=5):
+        self.models_ = {}
+        for lo, hi, name in self.STRATA:
+            m = (C >= lo) & (C < hi)
+            if m.sum() >= 200 and 5 <= (1 - y[m]).sum() <= m.sum() - 5:
+                self.models_[name] = DecisionTrustModel("logistic_2f").fit(
+                    C[m], E[m], y[m], groups[m], f"{key}|{name}", k)
+            else:
+                self.models_[name] = None
+        return self
+    def predict(self, C, E):
+        out = np.clip(C, 0, 1).copy()
+        for lo, hi, name in self.STRATA:
+            m = (C >= lo) & (C < hi)
+            if self.models_[name] is not None and m.any():
+                out[m] = self.models_[name].predict(C[m], E[m])
+        return out
+```
+
+**Part 2B. Shift-aware DTS via prior correction.**
+Before fitting DTS, weight the source validation rows by the Saerens-Latinne-Decaestecker target-prevalence estimate computed on the **unlabelled target score distribution**. This is a standard covariate-shift correction and uses no target labels.
+
+```python
+def dts_weights_target_aware(C_src_val, C_tgt_unlabelled, prior_src):
+    prior_tgt = estimate_target_prior(C_tgt_unlabelled, prior_source=prior_src)
+    w = np.where(C_src_val >= 0.5, prior_tgt / prior_src, (1 - prior_tgt) / (1 - prior_src))
+    return w / w.mean(), prior_tgt
+```
+
+**Part 2C. Decision evaluated on external, not only validation.**
+The Phase-4 gate must be evaluated on the **external strict population** (not just validation OOF Brier). Otherwise you are selecting the decision layer on the wrong population.
+
+```python
+P4_GATE_V2 = {
+    "criterion_AURC_external": "AURC(DTS_2f) < AURC(C) on strict-external sample",
+    "criterion_AURC_external_stratum": "AURC(DTS_stratum) < AURC(C) on strict-external sample",
+    "criterion_AURC_domain": "AURC(DTS_2f) < AURC(C) on in-domain test sample (secondary)",
+}
+```
+
+**Expected outcome.** Stratum DTS should show a genuine AURC improvement on external where the C-only model is overconfident. If it does not, that is the negative result to report.
+
+---
+
+### BLOCKER 3 — Test B is not universal
+
+**Problem statement.** ERS adds information about correctness only on Gram→Phresh external, not on Phresh in-domain or Phresh F48 external.
+
+**Diagnosis.** The Gram→Phresh case is exactly where a representation shortcut (HTTPS prevalence) is learned from source and fails on target. ERS is detecting cases where the explanation is fragile **because of that shortcut**. When the source model is not relying on a shifted feature, ERS has nothing extra to say.
+
+**Solution — restate Test B as a shift-conditioned test.**
+
+Instead of testing "ERS adds beyond C everywhere", test "ERS adds beyond C specifically on shift-stressed strata". Pre-register three strata:
+
+1. **Protocol-shift stratum**: URLs where `R_is_https` differs most from source mean.
+2. **Path-structure-shift stratum**: URLs where `R_path_ratio` is in the top or bottom decile of source support.
+3. **Lexicon-shift stratum**: URLs whose semantic tokens are outside the source vocabulary distribution.
+
+Run the LRT on each stratum separately, Holm-corrected.
+
+```python
+def shift_strata(X_src_val, X_tgt, feature_names, quantile=0.10):
+    """Return a boolean per target row: is this row outside source support on a top-shift feature?"""
+    strata = {}
+    for f in ["R_is_https", "R_path_ratio", "R_auth_token_count", "D_subquery_present"]:
+        j = feature_names.index(f)
+        lo, hi = np.quantile(X_src_val[:, j], [quantile, 1 - quantile])
+        strata[f] = (X_tgt[:, j] < lo) | (X_tgt[:, j] > hi)
+    return strata
+```
+
+Report the LRT per stratum. The paper can then claim *"ERS adds information beyond confidence precisely on the strata where the source model's explanation is predicted to be fragile"*, which is a stronger, more interesting, and more honest claim than a universal ERS-beats-confidence statement.
+
+**Expected outcome.** LRT will be significant on the protocol-shift and path-structure-shift strata, weaker or null on lexicon. That is a real, publishable finding.
+
+---
+
+### BLOCKER 4 — Reversed high-C/low-ERS vs high-C/high-ERS error ratio
+
+**Problem statement.** On Gram→Phresh external, high-ERS predictions have *higher* error rates. On Phresh in-domain F60R, the direction flips. If left unexplained, this kills the paper.
+
+**Diagnosis — three candidate mechanisms, each testable.**
+
+**Candidate A — Class confounding via ERS.**
+If ERS differs by class on the target, then "high-ERS" is a proxy for "predicted class X" and the error ratio is really a class-specific error rate.
+- **Test:** compute mean ERS by true class and predicted class on external. If `|mean ERS(class=1) - mean ERS(class=0)|` is >0.05 on external, this is at least part of the cause.
+
+**Candidate B — Target accuracy is class-asymmetric.**
+If the source model has much lower recall on one class on target, and ERS correlates with that class, the ratio reverses.
+- **Test:** per-class error rates on external. If FNR ≠ FPR by >2× on external, this is a contributor.
+
+**Candidate C — Faithfulness/consensus artifact.**
+If faithfulness `F` is systematically lower on the harder class on the target, and if consensus `M` is higher on "simple" URLs that happen to be misclassified, then ERS anti-correlates with correctness.
+- **Test:** compute per-class `F` and `M` on external. If `M` differs by >0.05 by class, this is a contributor.
+
+**Solution — decompose and report.**
+
+```python
+def diagnose_reversal(P_ext, X_names):
+    out = {}
+    # A: class confounding
+    e1 = P_ext["ERS"][P_ext["y"] == 1].mean()
+    e0 = P_ext["ERS"][P_ext["y"] == 0].mean()
+    out["delta_ERS_by_class"] = e1 - e0
+    # B: class-asymmetric accuracy
+    yh = P_ext["yhat"]; y = P_ext["y"]
+    out["FNR"] = ((yh == 0) & (y == 1)).sum() / max((y == 1).sum(), 1)
+    out["FPR"] = ((yh == 1) & (y == 0)).sum() / max((y == 0).sum(), 1)
+    # C: F, M by class
+    out["delta_F_by_class"] = P_ext["F"][y == 1].mean() - P_ext["F"][y == 0].mean()
+    out["delta_M_by_class"] = P_ext["M"][y == 1].mean() - P_ext["M"][y == 0].mean()
+    return out
+```
+
+**Reframing if reversal persists after decomposition.**
+
+If after conditioning on class the reversal disappears, then the correct claim is:
+*"On external data, ERS is a proxy for predicted class and does not independently add information about correctness."*
+
+If after conditioning on class the reversal persists within class, then:
+*"ERS is anti-correlated with correctness on external. This is a negative result and demonstrates that explanation stability does not imply decision reliability."*
+
+Either way, the paper must report it. If the reversal survives all controls, **do not present high-C/low-ERS as a risk signal on external data**.
+
+---
+
+### BLOCKER 5 — Weak zero-shot transfer
+
+**Problem statement.** Source-only external AUC 0.73–0.75 is not strong enough for a top-tier cross-dataset claim.
+
+**Solution set (choose by paper claim).**
+
+**Solution 5A — Improve zero-shot ceiling (no target labels).**
+
+Four components, each cheap:
+
+1. **Remove or downweight source-only shortcut features in the source-only branch.** This is *not* target-driven pruning — it is source-only signal. Two features have near-zero normalised source SHAP but high domain-classifier importance: `R_query_ratio`, `R_has_scheme`. Drop them from F60-R in a clearly labelled **F58-R ablation** (source-only, no target seen).
+
+2. **Add rank features.** For each continuous feature, add its empirical CDF rank computed on the source TRAIN distribution, then applied at inference. Rank features are robust to monotone shift. This is source-only; it uses no target data.
+
+```python
+def add_rank_features(X_src_train, X, names):
+    """Replace each numeric column by its source-train empirical CDF value in [0,1]."""
+    out = np.empty_like(X, dtype=np.float32)
+    for j, name in enumerate(names):
+        srt = np.sort(X_src_train[:, j][np.isfinite(X_src_train[:, j])])
+        if srt.size == 0:
+            out[:, j] = X[:, j]; continue
+        out[:, j] = np.searchsorted(srt, X[:, j], side="right") / max(srt.size, 1)
+    return out
+```
+
+3. **Multi-task training: predict class + predict domain-agnostic URL family.** Add an auxiliary head that predicts a coarse URL category (e.g. "has path segment with digits", "brand token in host") that is transferable by construction. Multi-task learning often improves zero-shot transfer.
+
+4. **Character n-gram model retrained with the same regularization as the structured model.** Rev 5 char TF-IDF alone got 0.768 external — the same as F60-R. This is not an improvement; the char model is being penalised by source-specific vocabulary. A character model trained on a *subsample* and evaluated on target support (drop char n-grams seen < 5 times in source, which are dataset-specific) should do better.
+
+**Solution 5B — Unsupervised domain adaptation (no target labels at all).**
+
+1. **Pseudo-label self-training.** Use M3 (source-only hybrid) to score Phresh TRAIN, take top-decile-confidence pseudo-labels, add to source training set with a domain indicator, retrain.
+   - Must be done with a **calibrated** pseudo-labeller so confidence is honest.
+   - Must not touch Phresh TEST.
+   - Uses no true target labels.
+
+```python
+def self_train_pseudo(source_X, source_y, target_X, model_fn, threshold=0.9, max_iter=2):
+    Xtr, ytr = source_X, source_y
+    for it in range(max_iter):
+        p = model_fn().fit(Xtr, ytr).predict_proba(target_X)[:, 1]
+        keep = (p >= threshold) | (p <= 1 - threshold)
+        Xtr = np.vstack([source_X, target_X[keep]])
+        ytr = np.concatenate([source_y, (p[keep] >= 0.5).astype(int)])
+    return Xtr, ytr
+```
+
+2. **Test-time adaptation (TTA) at prediction.** Use the unlabelled test batch statistics to adapt the score mapping (quantile matching). This uses no labels, only the score distribution.
+
+3. **Domain-adversarial feature pruning** — already in Rev 5, but need stricter thresholds. In Rev 5, `R_is_https` was not pruned despite 25.3% origin importance because its source SHAP was 0.0218 (above the 0.01 prune threshold). This is a **policy error**. If the source-domain model learned a shortcut on `is_https`, source SHAP will *look* high because on source the feature is discriminative. The prune rule should be:
+
+```
+prune iff (domain_importance > 0.05) AND (source |SHAP| > 0.01 in *standardised* units OR prevalence shift > 0.30)
+```
+
+`R_is_https` has prevalence shift 0.41 → prune. This is source-only + target *features*, no target labels, no target performance.
+
+**Solution 5C — Semi-supervised multi-source (target train labels used).**
+
+This is where 95% is achievable. Keep M2/M4 exactly as-is, but:
+
+1. **Raise the target-label budget requirement**: use all Phresh TRAIN, not a subsample. Rev 5 already does. So M2/M4 are not the bottleneck.
+2. **Tune the multi-source model on target validation.** Rev 5 fits M2/M4 with source-optimal hyperparameters. Refitting with target-validation hyperparameters should add ~1–3 AUC points.
+3. **Add `M2-hybrid` (multi-source + CharSVD) with target-val tuning** → target AUC ~0.985–0.990.
+
+**Solution 5D — Realistic ceiling and expectation.**
+
+State clearly in the paper:
+- **Zero-shot**: expected 0.78–0.84 AUC after 5A + 5B.
+- **Unsupervised UDA**: expected 0.85–0.90 AUC after 5B.
+- **Semi-supervised M2/M4**: **0.97–0.99 AUC, 0.94–0.97 accuracy** — this is the 95% claim.
+
+Do not claim 95% zero-shot. It is not achievable with the current representation.
+
+---
+
+### BLOCKER 6 — Robustness under perturbations
+
+**Problem statement.** Flip rates 8–57% on identity-preserving families. P3 dot-segment flips 22–55% externally. This is a genuine model-robustness failure, not only an ERS failure.
+
+**Solution — three-tier robustness program.**
+
+**Tier 6A. Training-time data augmentation.**
+For each training URL, generate the same identity-preserving perturbations used at test, keep the label fixed, include in training set with weight 0.3. This makes the model invariant to representation changes.
+
+```python
+def augment_identity_preserving(urls, labels, families=["P1_case_normalization", "P2_pct_encode_unreserved"], seed=SEED):
+    recs = generate_perturbations(list(range(len(urls))), urls,
+                                  {f: CFG.perturbation["identity_families"][f] for f in families}, seed)
+    valid = recs[recs["valid"]]
+    return valid["generated_url"].values, np.asarray(labels)[valid["source_uid"].values]
+```
+
+**Tier 6B. Adversarial training on stress families.**
+Train a second model on source + label-preserving stress perturbations (P5–P7) with correct labels (since regdom unchanged, labels mostly still valid). This is not "training on target" — the perturbations are applied to source URLs.
+
+**Tier 6C. Ensemble with character model for stress robustness.**
+The character model is more robust to P5–P7 by construction. Blend at inference: `p_final = 0.6 * p_struct + 0.4 * p_char` on stress tests only.
+
+**Expected outcome.** P5/P6/P7 flip rates should drop below 10%. P3 dot-segment flip rate should drop below 15%. Both are important because ERS is currently being evaluated on a prediction-unstable model.
+
+---
+
+### BLOCKER 7 — Domain-invariance gate incomplete
+
+**Problem statement.** 2 of 7 new features exceeded Wasserstein 0.25 and were binarised. Several remained above 0.15.
+
+**Solution — extend the domain-invariant feature set.**
+
+Add the following 8 features (F68-R), all of which are designed to be low-shift:
+
+| Feature | Definition | Why low-shift |
+|---|---|---|
+| `body_scheme_ratio` | `('https' in body.lower()) / max(1, body_token_count)` | Normalised, not raw |
+| `host_tld_class` | One-hot: ICANN common TLD (.com/.org/.net) vs ccTLD vs gTLD | Distribution-stable across modern URL corpora |
+| `path_depth_binary` | `1 if path_depth >= 2 else 0` | Binarised structural, robust |
+| `has_query_binary` | `1 if query_length > 0 else 0` | Binarised, robust |
+| `host_entropy_norm_z` | z-scored `host_entropy` using source TRAIN mean/std | Shift-robust by construction |
+| `path_token_density` | `body_token_count / max(path_length, 1)` | Ratio |
+| `digit_run_max` | Longest consecutive digit run in URL | Structural, dataset-invariant |
+| `brand_tld_match` | `1 if any brand token in host AND brand token in body` | Semantic-invariance check |
+
+Re-run the Phase-1 shift gate. Target: all new features ≤ 0.15. If some still fail, binarise them per the existing plan.
+
+**Also fix the pruning policy for R_is_https.**
+
+The Rev-5 prune rule (domain importance > 0.05 AND source |SHAP| < 0.01) did not prune `R_is_https` because its source SHAP was 0.0218. But its **prevalence shift** is 0.41, which is a strong signal that it is a shortcut. Change the rule:
+
+```python
+DA["feature_prune_policy_v2"] = {
+    "rule": "prune iff (domain_importance > 0.05) AND (source_norm_shap < 0.01 OR prevalence_shift > 0.30)",
+    "note": "source-only signal + label-independent target feature distribution; no target labels",
+}
+```
+
+Re-run Phase 2 with this rule and confirm that at least `R_is_https` is pruned on the Gram-sourced branch. This is the single highest-expected-value change for M0/M3 AUC.
+
+---
+
+## PART 4 — PHASED IMPLEMENTATION PLAN (REVISION 6)
+
+Each phase has a hard gate. Do not advance if the gate fails — diagnose first.
+
+### PHASE 0 — Preserve and prepare
+- Copy `trac-phish-revision5_runned.ipynb` to `trac-phish-revision6.ipynb`.
+- Freeze the dataset layer verbatim (Sections 1–12 of Rev 5).
+- Assert dataset fingerprints unchanged.
+
+**Gate 0:** All dataset, checksum, and compatibility assertions from Rev 5 still pass.
+
+### PHASE 1 — Representation repair
+- Add the 8 new domain-invariant features (F68-R).
+- Fix prune policy (Solution 5B + 7).
+- Re-run Phase-1 shift gate on all new features.
+
+**Gate 1:** All 15 new features ≤ 0.15 Wasserstein. If not, binarise any that exceed 0.15 but not 0.25, and replace any above 0.25.
+
+### PHASE 2 — Zero-shot transfer ceiling test
+- Retrain M0 with F68-R (still no target labels).
+- Add M0+rank features (Solution 5A.2).
+- Add M0+pseudo-label self-training (Solution 5B.1).
+
+**Gate 2:** At least one of {M0 F68-R, M0+rank, M0+pseudo} achieves strict-external AUC ≥ 0.80. If not, the representation is the bottleneck — do not proceed to full XAI.
+
+### PHASE 3 — Semi-supervised multi-source (95% claim)
+- Retrain M2/M4 with F68-R and target-validation-tuned hyperparameters.
+- Add `M2-hybrid` and `M4-hybrid`.
+- Report external accuracy at the balanced-MCC threshold.
+
+**Gate 3:** Best multi-source external accuracy ≥ 0.95 on both directions. If not, expand target train usage or add pseudo-label fusion.
+
+### PHASE 4 — Robustness repair
+- Add identity-preserving augmentation to source training (Solution 6A).
+- Add stress-family augmentation (Solution 6B).
+- Report P1–P9 flip rates.
+
+**Gate 4:** P3 dot-segment flip rate ≤ 15%. P5/P6/P7 flip rate ≤ 15%.
+
+### PHASE 5 — ERS target repair
+- Replace `y_rel` with cross-family `y_rel` (Solution 1).
+- Re-run Phase-3 gate with the honest correlation.
+
+**Gate 5:** Cross-family `rho(E0, y_rel) > 0.10` on at least 3 of 4 runs.
+
+### PHASE 6 — DTS repair
+- Fit stratum DTS (Solution 2A).
+- Fit prior-corrected DTS (Solution 2B).
+- Evaluate on external strict, not just validation.
+
+**Gate 6:** At least one DTS variant achieves lower external AURC than confidence-only. If not, report as negative.
+
+### PHASE 7 — Reversal diagnosis
+- Run Solution 4 decomposition.
+- Publish the per-class, per-stratum ERS/correctness breakdown.
+
+**Gate 7:** Either the reversal is explained (class confounding or per-class effect) or it is reported as a genuine negative.
+
+### PHASE 8 — Test B on strata
+- Run LRT per shift stratum (Solution 3).
+- Holm-correct within the stratum family.
+
+**Gate 8:** Report where ERS adds. Do not claim a universal effect.
+
+### PHASE 9 — Full XAI / ERS / DTS on the revised representation
+- Only after Phases 1–8.
+
+### PHASE 10 — Final statistics, manifest, write-up
+
+---
+
+## PART 5 — EXPECTED ACHIEVABLE RESULTS
+
+Under the plan above, I expect:
+
+| Metric | Rev 5 | Rev 6 expected |
+|---|---|---|
+| M0 source-only external AUC | 0.734 / 0.745 | **0.80–0.84** |
+| M3 hybrid source-only external AUC | 0.749 / 0.763 | **0.83–0.87** |
+| M0+pseudo-label external AUC | — | **0.85–0.90** |
+| M2 multi-source external accuracy | ~0.913 | **0.94–0.96** |
+| M4 multi-source hybrid external accuracy | ~0.938 | **0.95–0.97** |
+| Cross-family rho(E0, y_rel) | — (circular) | **0.30–0.55** |
+| Faithfulness F | 0.878–0.906 | **unchanged** |
+| Consensus M | 0.848–0.892 | **unchanged** |
+| Spearman(ERS, S_challenge) | 0.23–0.51 | **0.30–0.55** |
+| DTS external AURC vs C | worse | **improves on protocol-shift stratum** |
+| P3 flip rate | 22–55% | **8–15%** |
+| P5/P6/P7 flip rate | 8–27% | **5–15%** |
+
+The 95% claim is achievable only for M2/M4 (multi-source with target labels). Zero-shot will not hit 95% under this plan. That is not a failure of the plan; it is a limit of handcrafted URL features and this dataset pair.
+
+---
+
+## PART 6 — PAPER FRAMING AFTER REV 6
+
+**Recommended headline claim (defensible after Rev 6):**
+
+> "We introduce a reliability-calibrated decision framework for phishing URL detection that separates prediction confidence from explanation reliability. Under zero-shot transfer between two large, independently collected datasets, explanation reliability (ERS) predicts held-out explanation stability but is a weaker predictor of correctness than confidence. Under semi-supervised multi-source adaptation, prediction accuracy reaches 95%+ while the ERS signal degrades. We show that the decision-relevance of explanation reliability is **conditional on the source-target feature-importance overlap** and identify the protocol-scheme shortcut (HTTPS prevalence shift) as a key driver of both transfer failure and ERS miscalibration. We provide a shift-stratified evaluation protocol that isolates where ERS adds information beyond confidence."
+
+This is honest, novel enough, and publishable at a serious venue (ML + security track, or XAI workshop).
+
+**Do not claim:**
+- Universal ERS > confidence.
+- 95% zero-shot transfer.
+- ERS as a risk signal without per-class, per-stratum controls.
+- M2/M4 as zero-shot cross-dataset results.
+
+---
+
+## PART 7 — ONE-PAGE EXECUTION CHECKLIST
+
+1. Copy Rev 5 notebook → Rev 6.
+2. Freeze dataset/audit/compatibility sections. Run Gate 0.
+3. Add 8 new domain-invariant features. Re-run Phase-1 gate.
+4. Fix prune policy (prevalence-shift > 0.30 triggers prune). Retrain M0. Run Gate 2.
+5. Add rank features and pseudo-label self-training. Run Gate 2 again.
+6. Retrain M2/M4 with target-validation hyperparameters. Run Gate 3.
+7. Add identity-preserving and stress-family augmentation. Run Gate 4.
+8. Replace `y_rel` with cross-family target. Run Gate 5.
+9. Fit stratum DTS and prior-corrected DTS. Evaluate external AURC. Run Gate 6.
+10. Run reversal decomposition. Run Gate 7.
+11. Run Test B on shift strata. Run Gate 8.
+12. Only then re-run full XAI/ERS/DTS.
+13. Collect all statistics, generate manifest, write summary.
+

@@ -1,0 +1,7 @@
+*.rar
+*.zip
+*.parquet
+run/work/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
